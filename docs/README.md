@@ -106,7 +106,7 @@ Other operations generally should not return data except for a result code.
 
 ## Property Injection With @Properties
 
-The `@Property` annotation enables users to request system configuration information at runtime. Most users will include the `InjectableProperties.CONNECTION_CONFIGURATION`, as shown below, to retrieve information needed for connecting to their third-party, external datasource:
+The `@Property` annotation enables users to request system configuration information at runtime. Most users will include the `InjectableProperties.CONNECTION_CONFIGURATION`, as shown below, to retrieve information needed for connecting to their external datasource:
  
 ```java
 @CustomConnector(configuration = "pennave_connector.json")
@@ -196,7 +196,7 @@ Top-level properties (except `meta`) describe the connector. Connectors must use
 | name          | `String` | Name of the connector                     |
 | description   | `String` | Description the connector shown in the UI |
 
-The `meta` value defines the list properties available via `@Property(name=InjectableProperties.CUSTOM_DATASOURCE_PROPERTIES)`. Each list entry defines a unique property included in the `ReadOnlyProperties` object injected by IDDM.
+The `meta` value defines the list of properties available via `@Property(name=InjectableProperties.CUSTOM_DATASOURCE_PROPERTIES)`. Each list entry defines a unique property included in the `ReadOnlyProperties` object injected by IDDM.
 
 | Property name | Type     | Description                                                                  |
 |---------------|----------|------------------------------------------------------------------------------|
@@ -205,7 +205,7 @@ The `meta` value defines the list properties available via `@Property(name=Injec
 | sectionName   | `String` | Used to group properties in the UI; recommend always using "Properties"      | 
 | defaultValue  | `String` | Optional default value; use "null" to not specify a default value            |
 | dataType      | `String` | Allowed case-sensitive values: STRING, PASSWORD, BOOLEAN, NUMBER, LIST       |
-| isRequired    | boolean  | True if users must provide a value in the UI.                                |
+| isRequired    | boolean  | True if users must provide a value in the UI                                |
 
 
 ## Logging
@@ -285,5 +285,5 @@ Then use the `@Slf4j` annotation wherever logging is needed. Log entries produce
 |--------------------------------|----------------------|-----------------------------------------------------------------------------------------|
 | `CUSTOM_DATASOURCE_PROPERTIES` | `ReadOnlyProperties` | Provides current values of custom properties defined in the connector configuration     |
 | `PRIMARY_KEY_ATTRIBUTES`       | `ReadOnlyProperties` | Provides the attribute name-value pairs used to form an LDAP entry's "Primary Key"      |
-| `TARGET_SCHEMA_OBJECTS`        | `ReadOnlyProperties` | Provides the names of schema objects targeted by the current LDAP operation.            |
+| `TARGET_SCHEMA_OBJECTS`        | `ReadOnlyProperties` | Provides the names of schema objects targeted by the current LDAP operation            |
 | `SCHEMAS`                      | `Schema`             | Provides schema information for the datasource that received the current LDAP operation |
