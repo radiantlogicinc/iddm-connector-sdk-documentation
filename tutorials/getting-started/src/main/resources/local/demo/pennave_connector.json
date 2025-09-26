@@ -1,0 +1,37 @@
+{
+  "name": "PennAveIAM",
+  "description": "PennAveIAM custom connector used for the Getting Started tutorial",
+  "backendCategory": "custom",
+  "userCreated": true,
+  "icon": "",
+  "isSchemaExtractable": false,
+  "meta": [
+    {
+      "name": "host",
+      "description": "Host name of the PennAveIAM server",
+      "sectionName": "Properties",
+      "defaultValue": "api.pennaveiam.local",
+      "dataType": "STRING",
+      "isRequired": true,
+      "regex": null
+    },
+    {
+      "name": "username",
+      "description": "Username for authenticating to the PennAveIAM server",
+      "sectionName": "Properties",
+      "defaultValue": "admin",
+      "dataType": "STRING",
+      "isRequired": true,
+      "regex": null
+    },
+    {
+      "name": "password",
+      "description": "Password for authenticating to the PennAveIAM server",
+      "sectionName": "Properties",
+      "defaultValue": "Password1",
+      "dataType": "PASSWORD",
+      "isRequired": true,
+      "regex": null
+    }
+  ]
+}

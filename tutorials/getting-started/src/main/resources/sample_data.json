@@ -1,0 +1,74 @@
+[
+  {
+    "username": "washington",
+    "firstName": "George",
+    "lastName": "Washington",
+    "email": "washington@executive.gov",
+    "politicalParty": "Federalist",
+    "termsServed": 2
+  },
+  {
+    "username": "jefferson",
+    "firstName": "Thomas",
+    "lastName": "Jefferson",
+    "email": "jefferson@executive.gov",
+    "politicalParty": "Democratic-Republican",
+    "termsServed": 2
+  },
+  {
+    "username": "madison",
+    "firstName": "James",
+    "lastName": "Madison",
+    "email": "madison@executive.gov",
+    "politicalParty": "Democratic-Republican",
+    "termsServed": 2
+  },
+  {
+    "username": "monroe",
+    "firstName": "James",
+    "lastName": "Monroe",
+    "email": "monroe@executive.gov",
+    "politicalParty": "Democratic-Republican",
+    "termsServed": 2
+  },
+  {
+    "username": "jqadams",
+    "firstName": "John Q.",
+    "lastName": "Adams",
+    "email": "jqadams@executive.gov",
+    "politicalParty": "National Republican",
+    "termsServed": 1
+  },
+  {
+    "username": "jackson",
+    "firstName": "Andrew",
+    "lastName": "Jackson",
+    "email": "jackson@executive.gov",
+    "politicalParty": "Democratic",
+    "termsServed": 2
+  },
+  {
+    "username": "vanburen",
+    "firstName": "Martin",
+    "lastName": "Van Buren",
+    "email": "vanburen@executive.gov",
+    "politicalParty": "Democratic",
+    "termsServed": 1
+  },
+  {
+    "username": "harrison",
+    "firstName": "William",
+    "lastName": "Harrison",
+    "email": "harrison@executive.gov",
+    "politicalParty": "Whig",
+    "termsServed": 1
+  },
+  {
+    "username": "tyler",
+    "firstName": "John",
+    "lastName": "Tyler",
+    "email": "tyler@executive.gov",
+    "politicalParty": "Whig",
+    "termsServed": 1
+  }
+]
