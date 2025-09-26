@@ -167,7 +167,7 @@ All connectors must include a JSON configuration file describing the connector. 
 ```json
 {
   "name": "PennAveIAM",
-  "description": "PennAveIAM custom connector used for simple testing",
+  "description": "PennAveIAM custom connector used for the Getting Started tutorial",
   "backendCategory": "custom",
   "userCreated": true,
   "icon": "",
@@ -175,11 +175,11 @@ All connectors must include a JSON configuration file describing the connector. 
   "meta": [
     {
       "name": "host",
-      "description": null,
+      "description": "Host name of the PennAveIAM server",
       "sectionName": "Properties",
-      "defaultValue": null,
+      "defaultValue": "api.pennaveiam.local",
       "dataType": "STRING",
-      "isRequired": false,
+      "isRequired": true,
       "regex": null
     },
     ...
@@ -210,42 +210,32 @@ The `meta` value defines the list properties available via `@Property(name=Injec
 
 ## Logging
 
-Users can request a `Logger` instance via dependency injection for writing Log4j-style messages. The logger is automatically injected wherever  `Logger` appears as constructor parameter in `@CustomConnector` and `@ManagedComponent` annotated classes.
+The IDDM Connector SDK supports logging with [SLF4J](https://www.slf4j.org/), with Log4j as the provider in IDDM. To add logging, include the SLF4J API dependency with `<scope>provided</scope>`: 
 
-```java
-@CustomConnector(configuration = "pennave_connector.json")
-public class PennAveConnector implements SearchOperations<LdapSearchRequest, LdapResponse<String>> { 
-  
-  private final Logger log;
-  
-  public PennAveConnector(Logger logger) {
-    this.log = log;
-  }
-  ...
-}
+```xml
+<dependency>
+  <groupId>org.slf4j</groupId>
+  <artifactId>slf4j-api</artifactId>
+  <version>1.7.36</version>
+  <scope>provided</scope>
+</dependency>
 ```
 
-Log files are written to the `$RLI_HOME/<instance>/logs/connectors/` directory when the connector is used within an IDDM instance. 
+And optionally the SLF4J Simple provider for unit testing:
 
-The log-level is configurable by adding a custom property to the JSON metadata file:
+```xml
+<dependency>
+  <groupId>org.slf4j</groupId>
+  <artifactId>slf4j-simple</artifactId>
+  <version>1.7.36</version>
+  <scope>test</scope>
+</dependency>
+``` 
 
-```
-{ 
-  "name": "loglevel", 
-  "description": "Verbosity level of logging (ERROR, WARN, INFO, DEBUG, TRACE)", 
-  "sectionName": "Logging", 
-  "defaultValue": "INFO", 
-  "dataType": "STRING", 
-  "isRequired": false, 
-  "regex": "^(?:\\d+|(?i)(ERROR|WARN|INFO|DEBUG|TRACE))$" 
-}
-```
+Then use the `@Slf4j` annotation wherever logging is needed. Log entries produced by the connector (and its components) are written to the `vds_server.log` in IDDM. 
 
-When unit testing connectors outside IDDM, where dependency injection is not available and the log-level cannot be changed, users should use the `TestLogger` implementation that prints all messages to the console.
+**IMPORTANT WARNING**: Only `WARN` and `ERROR` connector log entries are written in IDDM v8.2.0. Lower priority entries are ignored. This issue will be fixed in IDDM v8.2.1, so developers are encouraged to use log levels as normal.
 
-```java
-PennAveConnector connector = new PennAveConnector(new TestLogger());
-```
 
 ## SDK Component Summary
 
@@ -274,12 +264,12 @@ PennAveConnector connector = new PennAveConnector(new TestLogger());
 
 | `Request`               | Description                                                              |
 |-------------------------|--------------------------------------------------------------------------|
-| `LdapSearchRequest`     | Implements an LDAP "Search Request" based on RFC 4511.                   |
-| `LdapModifyRequest`     | Implements an LDAP "Modify Request" based on RFC 4511.                   |
-| `LdapAddRequest`        | Implements an LDAP "Add Request" based on RFC 4511.                      |
-| `LdapDeleteRequest`     | Implements an LDAP "Delete Request" based on RFC 4511.                   |
-| `LdapBindRequest`       | Implements an LDAP "Bind Request" based on RFC 4511.                     |
-| `TestConnectionRequest` | Describes a request to test the connection to a URI-identified resource. |
+| `LdapSearchRequest`     | Implements an LDAP "Search Request" based on RFC 4511                   |
+| `LdapModifyRequest`     | Implements an LDAP "Modify Request" based on RFC 4511                   |
+| `LdapAddRequest`        | Implements an LDAP "Add Request" based on RFC 4511                      |
+| `LdapDeleteRequest`     | Implements an LDAP "Delete Request" based on RFC 4511                   |
+| `LdapBindRequest`       | Implements an LDAP "Bind Request" based on RFC 4511                     |
+| `TestConnectionRequest` | Describes a request to test the connection to a URI-identified resource |
 
 
 ### Response Implementations
@@ -291,15 +281,9 @@ PennAveConnector connector = new PennAveConnector(new TestLogger());
 
 ### Property Sets
 
-| Name                       | Object                    | Description                                                        |
-|----------------------------|---------------------------|--------------------------------------------------------------------|
-| `CONNECTION_CONFIGURATION` | `ConnectionConfiguration` | Provides properties of the custom data source                      |
-| `NAMING_CONTEXT`           | `NamingContextProperties` | Provides basic properties about the naming context (e.g., root DN) |
-
-
- ### Logging
- 
-| Component    | Description                                              |
-|--------------|----------------------------------------------------------|
-| `Logger`     | Interface for logging messages from connectors           |
-| `TestLogger` | Concrete `Logger` implementation for use in unit testing |
+| Name                           | Object Type          | Description                                                                             |
+|--------------------------------|----------------------|-----------------------------------------------------------------------------------------|
+| `CUSTOM_DATASOURCE_PROPERTIES` | `ReadOnlyProperties` | Provides current values of custom properties defined in the connector configuration     |
+| `PRIMARY_KEY_ATTRIBUTES`       | `ReadOnlyProperties` | Provides the attribute name-value pairs used to form an LDAP entry's "Primary Key"      |
+| `TARGET_SCHEMA_OBJECTS`        | `ReadOnlyProperties` | Provides the names of schema objects targeted by the current LDAP operation.            |
+| `SCHEMAS`                      | `Schema`             | Provides schema information for the datasource that received the current LDAP operation |
