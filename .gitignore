@@ -1,0 +1,13 @@
+# Ignore IDE metadata & project files
+.idea/
+*.iml
+out/
+.vscode/
+
+# Ignore compile output
+target
+
+# Ignore file
+ignore/*
+.sdkmanrc
+.flattened-pom.xml
