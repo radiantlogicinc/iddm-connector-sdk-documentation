@@ -1,42 +1,10 @@
-# Radiant Logic Connector SDK
-
-The Connector SDK provides the resources for building custom connectors that enable communication between IDDM and
-third-party, non-LDAP data sources.
-
-## Getting the SDK
-
-The Connector SDK is currently available in
-the [Radiant Logic GitLab Maven package registry](https://gitlab.com/groups/radiant-logic-engineering/-/packages?orderBy=created_at&sort=desc&search[]=iddm-sdk).
-
-The latest version can be added to Maven projects using the dependency:
-
-```text
-<dependency>
-  <groupId>com.radiantlogic</groupId>
-  <artifactId>iddm-connector-sdk</artifactId>
-  <!-- Always retrieves the latest available version -->
-  <version>[1.0,)</version>
-</dependency>
-```
-
-### Compatibility
-
-- Java 8
-- IDDM v8.2.0+ 
-
-## Learning the Connector SDK
+# Getting Started Tutorial
 
 This tutorial and sample project are provided to demonstrate the steps involved in building a real connector. The tutorial should be followed end-to-end, but it can also serve as a quick reference when building a new connector.
 
-More comprehensive documentation is forthcoming.
-
-### Get the sample project
-
-----------------------------------------------------
-
 For the tutorial, we will build a connector to an imaginary _PennAveIAM_ server that provides account services for American presidents. The connector will need to support LDAP search operations and use the provided `PennAveClient` for accessing the server's REST API. Each section ends with a valid connector that's usable by IDDM.
 
-Get started by cloning the sample project and loading it as a Maven project in your IDE.
+Get started by cloning this sample project and loading it as a Maven project in your IDE.
 
 The project follows the [Maven Standard Directory Layout](https://maven.apache.org/guides/introduction/introduction-to-the-standard-directory-layout.html) and includes a few of files to get started:
 
@@ -44,6 +12,7 @@ The project follows the [Maven Standard Directory Layout](https://maven.apache.o
 └───sdk-tutorial
     ├───pom.xml
     ├───README.md
+    ├───screenshots
     ├───PennAveIAMDatasource.zip
     └───src
         ├───main
@@ -214,28 +183,7 @@ The connector now returns real data to IDDM.
 
 The connector began supporting search operations as soon as it implemented the `SearchOperations` interface. But so far, it has completely ignored the actual request and returned only generic responses. Let's change that. If the connector receives a base scope search, then it should return only the user identified in the request's base DN. In all other cases, the connector should return all users.
 
-Implementing this behavior requires inspecting the `LdapSearchRequest` argument. Start by updating `PennAveConnector.search()` to take a different action based on the search scope:
-
-```java
-@Override
-public LdapResponse<String> search(LdapSearchRequest searchRequest) {
-
-    String jsonResponse = null;
-    if (searchRequest.getSearchScope() == SearchScope.BASE) {
-      // TODO: 
-      //  1. Extract the username from the search request
-      //  2. Search the PennAveIAM server for the specific user
-    } else {
-      jsonResponse = pennAveClient.getAllUsers();
-    }
-    
-    return jsonResponse != null ?
-        new LdapResponse<>(LdapResultCode.SUCCESS, jsonResponse) :
-        new LdapResponse<>(LdapResultCode.OPERATIONS_ERROR);
-}
-```
-
-Next, add a `getUsername()` method to `PennAveConnector` for extracting the username from the base DN:
+Implementing this behavior requires inspecting the `LdapSearchRequest` argument. Start by adding a `getUsername()` method to `PennAveConnector` for extracting the username from the base DN:
 
 ```java
 private String getUsername(LdapSearchRequest searchRequest) {
@@ -254,7 +202,7 @@ private String getUsername(LdapSearchRequest searchRequest) {
 }
 ```
 
-Finally, update `search()` to get the user from the PennAveIAM server:
+Next, update `PennAveConnector.search()` to take a different action based on the search scope:
 
 ```java
 @Override
@@ -282,12 +230,7 @@ The connector now supports getting all users and specific users.
 
 ----------------------------------------------------
 
-With the required search functionality implemented, we would normally prepare the connector for deployment by writing its configuration file. But in this case, a ready-to-use configuration file (_pennave_connector.json_) is provided for us. Let's open it to review a couple items.
-
-
-With the required search functionality implemented, we can prepare the connector for deployment by writing its configuration file.
-
-The connector configuration is a JSON formatted file that both provides details to IDDM about how the connector should be displayed and defines custom properties the connector requires. We would normally need to write this file from scratch, but in this tutorial, a ready-to-use file (_pennave_connector.json_) is provided for us. Let's open it to review a few important points.
+The connector configuration is a JSON file that both provides details to IDDM about how the connector should be displayed and defines custom properties for the connector. We would normally need to write this file from scratch, but in this tutorial, a ready-to-use file (_pennave_connector.json_) is provided for us. Let's open it to review a few important points.
 
 First, the `name` and `description` values are used by IDDM when displaying the connector in the IDDM Control Panel:   
 
@@ -342,33 +285,100 @@ The connector now includes information to help users identify and configure it i
 
 ----------------------------------------------------
 
-Now that the connector is fully implemented, we can package it for IDDM to use. This requires creating a JAR that includes the connector code and any external dependencies (such as Google Guava or Apache Commons libraries) because IDDM does not provide dependency management. We can do this by executing the Maven goals `clean` and `package` from either the IDE or terminal:
+Now that the connector is fully implemented, we can package it for IDDM to use. This requires creating a JAR that includes the connector code and external dependencies (such as Apache Commons libraries) because IDDM does not provide dependency management. We can do this by executing the Maven goals `clean` and `package` from either the IDE or terminal:
 
 ```text
 $ mvn clean package
 ```
 
-This will produce two JARs in the project's `target` directory: _pennaveiam-connector.jar_ and _pennaveiam-connector-jar-with-dependencies.jar_. The _pennaveiam-connector-jar-with-dependencies.jar_ is the one we want; this is the JAR that will be loaded into IDDM.
+This will produce two JARs in the project's `target` directory: _pennaveiam-connector.jar_ and _pennaveiam-connector-jar-with-dependencies.jar_. The _pennaveiam-connector-jar-with-dependencies.jar_ is the one we want. This is the JAR that will be deployed to IDDM.
 
 ### Deploy to IDDM
 
 ----------------------------------------------------
 
-With _pennave-connector-jar-with-dependencies.jar_ built and ready to use, follow the [IDDM documentation for creating a new template](https://developer.radiantlogic.com/idm/v8.1/configuration/data-sources/data-sources/#creating-templates). This will walk you through loading the connector into IDDM. However, one notable difference is there will be no need to fill-in details about the connector because IDDM automatically loads this information from the configuration file. If everything works correctly, you should see details about the connector automatically populated:
+With _pennave-connector-jar-with-dependencies.jar_ built and ready to use, follow the [IDDM documentation for creating a new template](https://developer.radiantlogic.com/idm/v8.1/configuration/data-sources/data-sources/#creating-templates). This will walk you through loading the connector into IDDM. However, one notable difference is there will be no need to fill-in details about the connector because IDDM automatically reads this information from the configuration file. If everything works correctly, you should see details about the connector automatically populated:
 
 <img src="screenshots/NewCustomTemplateScreenshot.PNG" alt="New custom template screenshot" width="563" height="367">
 
-<img src="screenshots/NewCustomTemplateScreenshot.PNG" alt="New custom template properties screenshot" width="563" height="367">
+<img src="screenshots/NewCustomTemplatePropertiesScreenshot.PNG" alt="New custom template properties screenshot" width="563" height="367">
 
-Once the JAR is loaded and a new template created, the connector is ready for use in IDDM. To try it out, import the _PennAveIAMDatasource.zip_ datasource provided in this tutorial by following the [IDDM documentation for importing data sources](https://developer.radiantlogic.com/idm/v8.1/configuration/data-sources/data-sources/#importing-data-sources) then create a new naming context to browse the data.
+Once the JAR is loaded and a new template created, the connector is available to use in IDDM. To try it out, import the _PennAveIAMDatasource.zip_ datasource provided in this tutorial by following the [IDDM documentation for importing data sources](https://developer.radiantlogic.com/idm/v8.1/configuration/data-sources/data-sources/#importing-data-sources). If the import is successful, a new configured data source called _PennAveIAM_ will appear in the Control Panel:
 
+<img src="screenshots/PennAveIAMDatasourceScreenshot.PNG" alt="Datasource settings screenshot" width="599" height="672"> 
 
-After the connector is loaded into IDDM, we will see the configuration settings displayed in the Control Panel:
-
-<img src="/screenshots/PennAveIAMDatasourceScreenshot.PNG" alt="Datasource settings screenshot" width="599" height="672">
+Finally, create a naming context and browse the data.
 
 ### Completed Sample Connector
 
 ----------------------------------------------------
 
-Refer to this...
+Below is the completed `PennAveConnector.java` code built in this tutorial. 
+
+```java
+package local.demo;
+
+import static com.radiantlogic.iddm.base.InjectableProperties.CUSTOM_DATASOURCE_PROPERTIES;
+
+import com.radiantlogic.iddm.annotations.CustomConnector;
+import com.radiantlogic.iddm.annotations.Property;
+import com.radiantlogic.iddm.base.ReadOnlyProperties;
+import com.radiantlogic.iddm.base.SearchOperations;
+import com.radiantlogic.iddm.base.SearchScope;
+import com.radiantlogic.iddm.ldap.DN;
+import com.radiantlogic.iddm.ldap.LdapResponse;
+import com.radiantlogic.iddm.ldap.LdapResultCode;
+import com.radiantlogic.iddm.ldap.LdapSearchRequest;
+import com.radiantlogic.iddm.ldap.RDN;
+import java.util.List;
+
+@CustomConnector(configuration = "pennave_connector.json")
+public class PennAveConnector implements
+    SearchOperations<LdapSearchRequest, LdapResponse<String>> {
+
+  // Member variable reference to the PennAveClient created in the constructor
+  private final PennAveClient pennAveClient;
+
+  public PennAveConnector(
+      @Property(name = CUSTOM_DATASOURCE_PROPERTIES) ReadOnlyProperties connectionProperties) {
+
+    // Read individual connection properties provided by IDDM
+    String host = (String) connectionProperties.get("host");
+    String username = (String) connectionProperties.get("username");
+    String password = (String) connectionProperties.get("password");
+
+    // Create an instance of the REST client and connect
+    this.pennAveClient = new PennAveClient(host, username, password);
+    this.pennAveClient.connect();
+  }
+
+  @Override
+  public LdapResponse<String> search(LdapSearchRequest searchRequest) {
+
+    String jsonResponse = null;
+    if (searchRequest.getSearchScope() == SearchScope.BASE) {
+      // Extract the username from the incoming search request
+      String username = getUsername(searchRequest);
+      // Search the PennAveIAM server for the specific user
+      jsonResponse = pennAveClient.getUser(username);
+    } else {
+      jsonResponse = pennAveClient.getAllUsers();
+    }
+
+    return jsonResponse != null ?
+        new LdapResponse<>(LdapResultCode.SUCCESS, jsonResponse) :
+        new LdapResponse<>(LdapResultCode.OPERATIONS_ERROR);
+  }
+
+  private String getUsername(LdapSearchRequest searchRequest) {
+    // Get the base DN from the search request. Ex: "username=washington,o=pennaveiam"
+    DN dn = searchRequest.getBaseDN();
+    // Split the DN into its individual components. Ex: ["username=washington", "o=pennaveiam"]
+    List<RDN> components = dn.getRDNs();
+    // Retrieve the left-most RDN. Ex: "username=washington"
+    RDN rdn = components.get(0);
+    // Retrieve username. Ex: "washington"
+    return rdn.getAttributes().get(0).getValues().get(0);
+  }
+}
+```
