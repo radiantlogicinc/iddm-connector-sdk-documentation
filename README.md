@@ -21,4 +21,4 @@ Connectors built using the SDK must be written in Java 8 and are supported in ID
 
 ## Learning the Connector SDK
 
-Start by following the [Getting Started Tutorial](/tutorials/getting-started) to build your first connector. Afterward, check the [IDDM Connector SDK User Guide](UserGuide.md) for learn more about individual features.
+Start by following the [Getting Started Tutorial](/tutorials/getting-started) to build your first connector. Afterward, check the [IDDM Connector SDK User Guide](UserGuide.md) and [Javadoc](https://radiantlogicinc.github.io/iddm-connector-sdk-documentation/) to learn more.
