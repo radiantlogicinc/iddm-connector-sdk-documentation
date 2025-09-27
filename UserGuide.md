@@ -1,0 +1,289 @@
+# User Guide
+
+## Connector Requirements
+
+The minimum requirements for implementing a custom connector are:
+
+- Apply the `@CustomConnector` annotation to a class to identify it as the connector.
+- Implement at least one operation interface to specify what operations the connector supports.
+- Specify a configuration file containing details of how to display and configure the connector.
+
+```java
+@CustomConnector(configuration = "pennave_connector.json")
+public class PennAveConnector
+    implements SearchOperations<LdapSearchRequest, LdapResponse<String>> {
+  /* ...provide connector implementation... */
+}
+```
+
+## Operation Interfaces
+
+Operation interfaces are implemented by the connector and specify exactly what operations the connector supports. There are interfaces for common LDAP operations:
+ 
+- `SearchOperations<IN extends SearchRequest, OUT extends SearchResponse>`
+- `CreateOperations<IN extends CreateRequest, OUT extends CreateResponse>`
+- `ModifyOperations<IN extends ModifyRequest, OUT extends ModifyResponse>`
+- `DeleteOperations<IN extends DeleteRequest, OUT extends DeleteResponse>`
+- `AuthenticationOperations<IN extends AuthenticationRequest, OUT extends AuthenticationResponse>`
+
+And additional interfaces for IDDM-specific operations:  
+ 
+- `TestConnectionOperations<IN extends TestConnectionRequest, OUT extends TestConnectionResponse>`
+
+The connector should implement interfaces only for the operations it supports. IDDM uses this information to determine what types of requests can be sent to the connector.
+
+## Request and Response Types
+
+Each operation interface includes type arguments specifying the request (input) and response (output) types it expects. There are Java interfaces for implementing custom types, but most users will find it much easier to use the concrete type implementations provided in the SDK. The table below shows the recommend input and output types for each operation interface. (These recommendations are based on what IDDM actually sends to the connector and expects in return.) 
+
+| Operation Interface         | Request Type           | Response Type                           |
+|-----------------------------|------------------------|-----------------------------------------|
+| `SearchOperations`          | `LdapSearchRequest`    | `LdapResponse`                          |
+| `CreateOperations`          | `LdapAddRequest`       | `LdapResponse`                          |
+| `ModifyOperations`          | `LdapModifyRequest`    | `LdapResponse`                          |
+| `DeleteOperations`          | `LdapDeleteRequest`    | `LdapResponse`                          |
+| `AuthenticationOperations`  | `LdapBindRequest`      | `LdapResponse`                          |
+| `TestConnectionOperations`  | `TestConnectionRequest`| `TestConnectionResponse`                |
+
+Most operations return an `LdapResponse<T>`. This is a flexible container class for representing an LDAP response that can be returned to IDDM. It includes an `LdapResultCode` and data appropriate for the response, such as search results. The data is not required to follow any specific structure apart from being serializable to JSON. (The connector does not need to actually perform any serialization. IDDM does the work.) But most users will find connector development and integration much easier by following these recommendations when implementing search operations:
+
+1. An LDAP entry is essentially a collection of key-value pairs with at most one nesting level. Structure response data in a similar way.
+    ```json
+      {
+        "username": "washington",
+        "firstName": "George",
+        "lastName": "Washington"
+      }
+    ```
+2. Store nested data in a list.
+    ```json
+      {
+        "username": "washington",
+        "firstName": "George",
+        "lastName": "Washington",
+        "ranks": ["Colonel", "Major General", "Lieutenant General", "General of the Armies"]
+      }
+    ```
+3. Use primitive data types, such as a numbers, strings and Booleans, to represent values in an entry. 
+4. Return search results in a list:
+    ```json
+   [
+      {"username": "washington", "firstName": "George", "lastName": "Washington"},
+      {"username": "adams", "firstName": "John", "lastName": "Adams"},
+      {"username": "jefferson", "firstName": "Thomas", "lastName": "Jefferson"}
+   ]    
+    ```
+
+The example below is for a connector that supports search, accepts the incoming request as an `LdapSearchRequest` object, and returns its response to IDDM as an `LdapResponse` containing `List<Map<String, Object>>` data.
+
+```java
+@Override
+public LdapResponse<List<Map<String, Object>>> search(LdapSearchRequest searchRequest) {
+  
+  // Create a search result entry
+  final Map<String, Object> entry1 = new HashMap<>();
+  entry1.put("firstName", "George");
+  entry1.put("lastName", "Washington");
+  entry1.put("termsServed", 2);
+  
+  // Create a search result entry
+  final Map<String, Object> entry2 = new HashMap<>();
+  entry2.put("firstName", "William");
+  entry2.put("lastName", "Harrison");
+  entry2.put("termsServed", 1);
+  
+  // Collect all the search results
+  final List<Map<String, Object>> searchResultData = new ArrayList();
+  searchResultData.add(entry1);
+  searchResultData.add(entry2);
+
+  // Return a response with the status code and data
+  return new LdapResponse<>(LdapResultCode.SUCCESS, searchResultData);
+}
+```
+
+Other operations generally should not return data except for a result code.
+
+## Property Injection With @Properties
+
+The `@Property` annotation enables users to request system configuration information at runtime. Most users will include the `InjectableProperties.CONNECTION_CONFIGURATION`, as shown below, to retrieve information needed for connecting to their external datasource:
+ 
+```java
+@CustomConnector(configuration = "pennave_connector.json")
+public class PennAveConnector implements SearchOperations<LdapSearchRequest, LdapResponse<String>> { 
+  
+  private final String host;
+  private final String username;
+  private final String password;
+  
+  public PennAveConnector(@Property(name = CUSTOM_DATASOURCE_PROPERTIES) ReadOnlyProperties connectionProperties) {
+    // Read values from the injected property set
+    this.host = (String) connectionProperties.get("host");
+    this.username = (String) connectionProperties.get("username");
+    this.password = (String) connectionProperties.get("password");
+  }
+  
+}
+```
+
+The exact object type injected by IDDM depends on the properties requested. ([See the Property Sets section later in this guide](#Property-Sets) or `InjectableProperties` Javadoc for details.) The `@Property` annotation can be applied to only constructor parameters appearing in `@ManagedComponent` and `@CustomConnector` annotated classes. 
+
+
+## Dependency Injection With @ManagedComponent
+
+Applying the `@ManagedComponent` annotation to a class indicates that class is a "managed component" and makes it eligible for automatic constructor-based injection. Managed components are automatically instantiated and injected by IDDM whenever they appear as constructor parameters for connectors and other managed components. The annotated class must have (1) only one constructor, and (2) that constructor must have either no arguments or all arguments must be annotated with `@Properties` or `@ManagedComponent`. 
+
+A typical use case is annotating a custom client that communicates with an external data source. For example:
+
+```java
+@ManagedComponent
+public class PennAveClient {
+  public PennAveClient(
+      @Property(name = CUSTOM_DATASOURCE_PROPERTIES) ReadOnlyProperties connectionProperties) {
+  ...
+  }
+}
+```
+
+IDDM can now automatically create and inject a new `PennAveClient` instance whenever it appears as a constructor argument in a connector or managed component:
+
+```java
+@CustomConnector(configuration = "pennave_connector.json")
+public class PennAveConnector implements SearchOperations<LdapSearchRequest, LdapResponse<String>> { 
+  
+  private final PennAveClient pennAveClient;
+  
+  public PennAveConnector(final PennAveClient injectedClient) {
+    this.pennAveClient = injectedClient;
+  }
+  ...
+}
+```
+
+## Connector Configuration
+
+All connectors must include a JSON configuration file describing the connector. For example: 
+
+```json
+{
+  "name": "PennAveIAM",
+  "description": "PennAveIAM custom connector used for the Getting Started tutorial",
+  "backendCategory": "custom",
+  "userCreated": true,
+  "icon": "",
+  "isSchemaExtractable": false,
+  "meta": [
+    {
+      "name": "host",
+      "description": "Host name of the PennAveIAM server",
+      "sectionName": "Properties",
+      "defaultValue": "api.pennaveiam.local",
+      "dataType": "STRING",
+      "isRequired": true,
+      "regex": null
+    },
+    ...
+  ]
+}
+```
+
+The configuration file and connector are linked using the `@CustomConnector` `configuration` parameter. (See previous examples.)
+
+Top-level properties (except `meta`) describe the connector. Connectors must use the values shown in the example above, customizing only the `name` and `description`. 
+
+| Property name | Type     | Description                               | 
+|---------------|----------|-------------------------------------------|
+| name          | `String` | Name of the connector                     |
+| description   | `String` | Description the connector shown in the UI |
+
+The `meta` value defines the list of properties available via `@Property(name=InjectableProperties.CUSTOM_DATASOURCE_PROPERTIES)`. Each list entry defines a unique property included in the `ReadOnlyProperties` object injected by IDDM.
+
+| Property name | Type     | Description                                                                  |
+|---------------|----------|------------------------------------------------------------------------------|
+| name          | `String` | Name to display in the UI; used to get the value from `ReadOnlyProperties`   |
+| description   | `String` | Property description shown in the UI                                         |
+| sectionName   | `String` | Used to group properties in the UI; recommend always using "Properties"      | 
+| defaultValue  | `String` | Optional default value; use "null" to not specify a default value            |
+| dataType      | `String` | Allowed case-sensitive values: STRING, PASSWORD, BOOLEAN, NUMBER, LIST       |
+| isRequired    | boolean  | True if users must provide a value in the UI                                |
+
+
+## Logging
+
+The IDDM Connector SDK supports logging with [SLF4J](https://www.slf4j.org/), with Log4j as the provider in IDDM. To add logging, include the SLF4J API dependency with `<scope>provided</scope>`: 
+
+```xml
+<dependency>
+  <groupId>org.slf4j</groupId>
+  <artifactId>slf4j-api</artifactId>
+  <version>1.7.36</version>
+  <scope>provided</scope>
+</dependency>
+```
+
+And optionally the SLF4J Simple provider for unit testing:
+
+```xml
+<dependency>
+  <groupId>org.slf4j</groupId>
+  <artifactId>slf4j-simple</artifactId>
+  <version>1.7.36</version>
+  <scope>test</scope>
+</dependency>
+``` 
+
+Then use the `@Slf4j` annotation wherever logging is needed. Log entries produced by the connector (and its components) are written to the `vds_server.log` in IDDM. 
+
+**IMPORTANT WARNING**: Only `WARN` and `ERROR` connector log entries are written in IDDM v8.2.0. Lower priority entries are ignored. This issue will be fixed in IDDM v8.2.1, so developers are encouraged to use log levels as normal.
+
+
+## SDK Component Summary
+
+### Annotations
+
+| Component           | Description                                                                                  |
+|---------------------|----------------------------------------------------------------------------------------------|
+| `@CustomConnector`  | Annotation applied to the primary connector class and used by IDDM to identify the connector |
+| `@Properties`       | Annotation for injecting configuration data from IDDM                                        |
+| `@ManagedComponent` | Annotation for marking a class as eligible for automatic constructor-based injection         |
+
+
+### Operation Interfaces
+
+| Component                                                                                        | Description                                                          |
+|--------------------------------------------------------------------------------------------------|----------------------------------------------------------------------|
+| `SearchOperations<IN extends SearchRequest, OUT extends Response>`                               | Interface for connectors that support read/search operations         |
+| `CreateOperations<IN extends CreateRequest, OUT extends Response>`                               | Interface for connectors that support create/add operations          |
+| `ModifyOperations<IN extends ModifyRequest, OUT extends Response>`                               | Interface for connectors that support update/modify operations       |
+| `DeleteOperations<IN extends DeleteRequest, OUT extends Response>`                               | Interface for connectors that support delete operations              |
+| `AuthenticationOperations<IN extends AuthenticationRequest, OUT extends Response>`               | Interface for connectors that support authentication/bind operations |
+| `TestConnectionOperations<IN extends TestConnectionRequest, OUT extends TestConnectionResponse>` | Interface for connectors that support IDDM's test connection feature |
+
+
+### Request Implementations
+
+| `Request`               | Description                                                              |
+|-------------------------|--------------------------------------------------------------------------|
+| `LdapSearchRequest`     | Implements an LDAP "Search Request" based on RFC 4511                   |
+| `LdapModifyRequest`     | Implements an LDAP "Modify Request" based on RFC 4511                   |
+| `LdapAddRequest`        | Implements an LDAP "Add Request" based on RFC 4511                      |
+| `LdapDeleteRequest`     | Implements an LDAP "Delete Request" based on RFC 4511                   |
+| `LdapBindRequest`       | Implements an LDAP "Bind Request" based on RFC 4511                     |
+| `TestConnectionRequest` | Describes a request to test the connection to a URI-identified resource |
+
+
+### Response Implementations
+
+| `Response`               | Description                                                                     |
+|--------------------------|---------------------------------------------------------------------------------|
+| `LdapResponse<T>`        | Represents an LDAP response containing operation status and any associated data |
+| `TestConnectionResponse` | Represents the result of a test connection operation                            |
+
+### Property Sets
+
+| Name                           | Object Type          | Description                                                                             |
+|--------------------------------|----------------------|-----------------------------------------------------------------------------------------|
+| `CUSTOM_DATASOURCE_PROPERTIES` | `ReadOnlyProperties` | Provides current values of custom properties defined in the connector configuration     |
+| `PRIMARY_KEY_ATTRIBUTES`       | `ReadOnlyProperties` | Provides the attribute name-value pairs used to form an LDAP entry's "Primary Key"      |
+| `TARGET_SCHEMA_OBJECTS`        | `ReadOnlyProperties` | Provides the names of schema objects targeted by the current LDAP operation            |
+| `SCHEMAS`                      | `Schema`             | Provides schema information for the datasource that received the current LDAP operation |
