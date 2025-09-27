@@ -13,9 +13,7 @@ import com.radiantlogic.iddm.ldap.LdapResultCode;
 import com.radiantlogic.iddm.ldap.LdapSearchRequest;
 import com.radiantlogic.iddm.ldap.RDN;
 import java.util.List;
-import lombok.extern.slf4j.Slf4j;
 
-@Slf4j
 @CustomConnector(configuration = "pennave_connector.json")
 public class PennAveConnector implements
     SearchOperations<LdapSearchRequest, LdapResponse<String>> {
@@ -38,7 +36,6 @@ public class PennAveConnector implements
 
   @Override
   public LdapResponse<String> search(LdapSearchRequest searchRequest) {
-    log.info("Processing search request: {}", searchRequest);
 
     String jsonResponse = null;
     if (searchRequest.getSearchScope() == SearchScope.BASE) {
