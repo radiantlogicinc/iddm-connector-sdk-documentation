@@ -9,7 +9,7 @@ Get started by cloning this sample project and loading it as a Maven project in 
 The project follows the [Maven Standard Directory Layout](https://maven.apache.org/guides/introduction/introduction-to-the-standard-directory-layout.html) and includes a few of files to get started:
 
 ```text
-└───sdk-tutorial
+└───getting-started
     ├───pom.xml
     ├───README.md
     ├───screenshots
