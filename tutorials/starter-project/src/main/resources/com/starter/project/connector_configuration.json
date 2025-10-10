@@ -1,0 +1,19 @@
+{
+  "name": "Starter Project Connector",
+  "description": "Starter project connector provided in the IDDM Connector SDK Documentation GitHub repo.",
+  "backendCategory": "custom",
+  "userCreated": true,
+  "icon": "",
+  "isSchemaExtractable": false,
+  "meta": [
+    {
+      "name": "placeholder",
+      "description": null,
+      "sectionName": "Properties",
+      "defaultValue": "No value provided.",
+      "dataType": "STRING",
+      "isRequired": false,
+      "regex": null
+    }
+  ]
+}
