@@ -20,8 +20,7 @@ The project follows the [Maven Standard Directory Layout](https://maven.apache.o
         |   |   └───local.demo
         |   |       └───PennAveClient.java
         │   └───resources
-        |       ├───local.demo
-        |       |    └───pennave_connector.json
+        |       ├───pennave_connector.json
         |       └───sample_data.json  
         └───test
             └───java
