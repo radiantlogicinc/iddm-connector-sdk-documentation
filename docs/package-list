@@ -3,4 +3,5 @@ com.radiantlogic.iddm.base
 com.radiantlogic.iddm.exceptions
 com.radiantlogic.iddm.ldap
 com.radiantlogic.iddm.ldap.controls
+com.radiantlogic.iddm.schema
 com.radiantlogic.iddm.util

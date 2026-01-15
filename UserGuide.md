@@ -104,7 +104,7 @@ public LdapResponse<List<Map<String, Object>>> search(LdapSearchRequest searchRe
 
 Other operations generally should not return data except for a result code.
 
-## Property Injection With @Properties
+## Property Injection With @Property
 
 The `@Property` annotation enables users to request system configuration information at runtime. Most users will include the `InjectableProperties.CONNECTION_CONFIGURATION`, as shown below, to retrieve information needed for connecting to their external datasource:
  
@@ -131,7 +131,7 @@ The exact object type injected by IDDM depends on the properties requested. ([Se
 
 ## Dependency Injection With @ManagedComponent
 
-Applying the `@ManagedComponent` annotation to a class indicates that class is a "managed component" and makes it eligible for automatic constructor-based injection. Managed components are automatically instantiated and injected by IDDM whenever they appear as constructor parameters for connectors and other managed components. The annotated class must have (1) only one constructor, and (2) that constructor must have either no arguments or all arguments must be annotated with `@Properties` or `@ManagedComponent`. 
+Applying the `@ManagedComponent` annotation to a class indicates that class is a "managed component" and makes it eligible for automatic constructor-based injection. Managed components are automatically instantiated and injected by IDDM whenever they appear as constructor parameters for connectors and other managed components. The annotated class must have (1) only one constructor, and (2) that constructor must have either no arguments or all arguments must be annotated with `@Property` or `@ManagedComponent`. 
 
 A typical use case is annotating a custom client that communicates with an external data source. For example:
 
@@ -187,7 +187,7 @@ All connectors must include a JSON configuration file describing the connector. 
 }
 ```
 
-The configuration file and connector are linked using the `@CustomConnector` `configuration` parameter. (See previous examples.)
+The configuration file can be placed anywhere in the connector JAR. Use the `@CustomConnector` `configuration` parameter to specify the configuration file the connector will use. The `configuration` parameter is case-sensitive so it must match the filename exactly. IDDM automatically searches the JAR for this file when loading the connector for the first time. For example, using `@CustomConnector(configuration = "pennave_connector.json")` causes IDDM to search the JAR for the file called `pennave_connector.json`. The connector will not load if the file is not found or if the JAR contains multiple configuration files with the same name.
 
 Top-level properties (except `meta`) describe the connector. Connectors must use the values shown in the example above, customizing only the `name` and `description`. 
 
@@ -232,9 +232,87 @@ And optionally the SLF4J Simple provider for unit testing:
 </dependency>
 ``` 
 
-Then use the `@Slf4j` annotation wherever logging is needed. Log entries produced by the connector (and its components) are written to the `vds_server.log` in IDDM. 
+Then use the `@Slf4j` annotation wherever logging is needed. Each data source that uses the connector produces its own log files with entries beginning when the connector begins processing a request and ending when the connector returns its response.
 
-**IMPORTANT WARNING**: Only `WARN` and `ERROR` connector log entries are written in IDDM v8.2.0. Lower priority entries are ignored. This issue will be fixed in IDDM v8.2.1, so developers are encouraged to use log levels as normal.
+## Schema Authoring
+
+The schema authoring feature optionally allows developers to define a schema natively in Java then use it in IDDM. This eliminates the need for an IDDM administrator to manually create the schema through the Control Panel, and helps ensure the connector and IDDM share common model objects. 
+
+Schema authoring is automatically triggered when using a connector to create a new data source. IDDM searches the connector JAR for all `@Entity` annotated classes. These classes are collectively the "schema definition". If found, then the schema definition is used to generate a new schema for the data source. This new schema behaves the same as one manually created through the IDDM Control Panel: it is editable, it can be injected into the connector using the `@Property(name = InjectableProperties.SCHEMAS)` annotation, etc. If no definition is found, then the data source is created without a schema. (Data source creation will fail if a schema definition is found but the schema cannot be generated, for example, because of validation errors, conflicting definitions, etc.)
+
+Use the `@Entity` annotation to define a new schema object (or "table") and the `@Attribute` annotation to define fields within an entity. The connector JAR may contain multiple `@Entity` annotated classes, each of which will become a separate schema object in IDDM. Both annotations include optional parameters for fine-tuning the schema definition but provide sensible defaults. (See the [Connector SDK Javadoc](https://radiantlogicinc.github.io/iddm-connector-sdk-documentation/) for more details.)
+
+A common pattern for defining the schema is annotating model objects the connector already uses. This approach effectively creates a common structure for moving data between the connector and IDDM. For example, the connector might include a `President` POJO for storing data retrieved from the external data source. This same POJO can be annotated to define the IDDM schema:
+
+```java
+import com.radiantlogic.iddm.schema.Entity;
+import com.radiantlogic.iddm.schema.Attribute;
+
+// Using "name" to specify the schema object name and "namingKey" the RDN key used for LDAP entries
+@Entity(name = "vdPresident", namingKey = "name")
+@NoArgsConstructor
+@Getter
+public final class President {
+
+   @Attribute
+   private String firstName;
+
+   @Attribute
+   private String lastName;
+
+   // Using "isNullable" to indicate an attribute should be optional in the schema
+   @Attribute(isNullable = true)
+   private String email;
+
+   // Using "name" to give the attribute a different name in the schema than in this class
+   @Attribute(name = "username", isNamingAttribute = true)
+   private String id;
+
+   // Using "tags" to record additional useful information about the attribute
+   @Attribute(
+           name = "termsServed",
+           asType = Field.Type.INTEGER,
+           isNullable = true,
+           tags = {"GET /president/{username}"})
+   private int numTermsServed;
+}
+```
+
+IDDM would use this class to create a new schema containing a table called `vdPresident` with five attributes: `firstName`, `lastName`, optional `email`, optional `termsServed`, and the naming attribute ("primary key") `username`. The example below shows how data in a `President` Java object (represented in JSON) maps to an LDAP entry that conforms to the schema definition:
+
+```json
+{
+   "firstName": "George",
+   "lastName": "Washington",
+   "email": "washington@executive.gov",
+   "id": "washington",
+   "numTermsServed": 2
+}
+```
+
+``` 
+   dn: name=washington,ou=presidents,o=pennaveiam
+   objectClass: top
+   objectClass: vdPresident
+   firstName: George
+   lastName: Washington
+   email: washington@executive.gov
+   username: washington
+   termsServed: 2
+```
+
+> [!IMPORTANT]
+> The schema definition and data handling are separate concerns. You can use the same classes for both the schema definition and returning data to IDDM, but the `@Entity` and `@Attribute` annotations only affect schema generation, not runtime data handling such as serialization. You are responsible for ensuring data returned to IDDM is structured to match the schema definition.
+
+When defining entities:
+
+All `@Entity` annotated classes must:
+- Have a public, no-argument constructor
+- Be a concrete top-level class
+- Contain at least one attribute designated as a "naming attribute" (`isNamingAttribute = true`)
+
+> [!IMPORTANT]
+> The `@Entity` and `@Attribute` annotations are not inherited. Extending an entity does not make the subclass an entity, and the `@Entity` annotated subclass of an entity does not inherit its parent's attributes. Only explicitly annotated classes and fields are included in the schema definition.
 
 
 ## SDK Component Summary
@@ -244,8 +322,10 @@ Then use the `@Slf4j` annotation wherever logging is needed. Log entries produce
 | Component           | Description                                                                                  |
 |---------------------|----------------------------------------------------------------------------------------------|
 | `@CustomConnector`  | Annotation applied to the primary connector class and used by IDDM to identify the connector |
-| `@Properties`       | Annotation for injecting configuration data from IDDM                                        |
+| `@Property`       | Annotation for injecting configuration data from IDDM                                        |
 | `@ManagedComponent` | Annotation for marking a class as eligible for automatic constructor-based injection         |
+| `@Entity`           | Annotation applied to classes that define IDDM schema objects                                |
+| `@Attribute`        | Annotation applied to fields that are part of the IDDM schema definition                     |
 
 
 ### Operation Interfaces
@@ -285,5 +365,8 @@ Then use the `@Slf4j` annotation wherever logging is needed. Log entries produce
 |--------------------------------|----------------------|-----------------------------------------------------------------------------------------|
 | `CUSTOM_DATASOURCE_PROPERTIES` | `ReadOnlyProperties` | Provides current values of custom properties defined in the connector configuration     |
 | `PRIMARY_KEY_ATTRIBUTES`       | `ReadOnlyProperties` | Provides the attribute name-value pairs used to form an LDAP entry's "Primary Key"      |
-| `TARGET_SCHEMA_OBJECTS`        | `ReadOnlyProperties` | Provides the names of schema objects targeted by the current LDAP operation            |
+| `TARGET_SCHEMA_OBJECTS`        | `ReadOnlyProperties` | Provides the names of schema objects targeted by the current LDAP operation             |
 | `SCHEMAS`                      | `Schema`             | Provides schema information for the datasource that received the current LDAP operation |
+
+
+
