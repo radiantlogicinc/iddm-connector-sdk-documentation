@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.1.1 - 2026-01-29
+
+### Changed
+
+- Deprecate `SearchFilter.getValue()` method that returns the wrong value for some filter types. Use the new `SearchFilter.getAssertionValue()` instead.
+
+### Added
+
+- Add `SearchFilter.getAssertionValue()` method.
+
+### Fixed
+
+- Gracefully handle and log errors when inspecting Java 9+ classes for annotations.
+
 ## 1.1.0 - 2026-01-14
 
 ### Changed
