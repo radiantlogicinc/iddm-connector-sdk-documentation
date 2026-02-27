@@ -106,7 +106,7 @@ Other operations generally should not return data except for a result code.
 
 ## Property Injection With @Property
 
-The `@Property` annotation enables users to request system configuration information at runtime. Most users will include the `InjectableProperties.CONNECTION_CONFIGURATION`, as shown below, to retrieve information needed for connecting to their external datasource:
+The `@Property` annotation enables users to request system configuration information at runtime. Most users will include the `InjectableProperties.CUSTOM_DATASOURCE_PROPERTIES`, as shown below, to retrieve information needed for connecting to their external datasource:
  
 ```java
 @CustomConnector(configuration = "pennave_connector.json")
@@ -128,6 +128,8 @@ public class PennAveConnector implements SearchOperations<LdapSearchRequest, Lda
 
 The exact object type injected by IDDM depends on the properties requested. ([See the Property Sets section later in this guide](#Property-Sets) or `InjectableProperties` Javadoc for details.) The `@Property` annotation can be applied to only constructor parameters appearing in `@ManagedComponent` and `@CustomConnector` annotated classes. 
 
+> [!IMPORTANT]
+> Property names injected by `CUSTOM_DATASOURCE_PROPERTIES` are normalized differently by IDDM based on the operation being performed. Developers are strongly encouraged to use snake case ("admin_password") or kebab case ("admin-password") for all connector configuration property names.
 
 ## Dependency Injection With @ManagedComponent
 
