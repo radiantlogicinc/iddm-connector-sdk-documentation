@@ -10,7 +10,7 @@ The IDDM Connector SDK is available from the [Maven Central Repository](https://
 <dependency>
   <groupId>com.radiantlogic</groupId>
   <artifactId>iddm-connector-sdk</artifactId>
-  <version>1.1.1</version>
+  <version>1.2.0</version>
   <scope>provided</scope>
 </dependency>
 ```

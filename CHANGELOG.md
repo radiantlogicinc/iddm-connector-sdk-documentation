@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.2.0 - 2026-04-03
+
+### Changed
+
+- Update `LdapResultCode` to include all result codes defined in [RFC 4511 Section 4.1.9](https://datatracker.ietf.org/doc/html/rfc4511#section-4.1.9).
+- Deprecate `ReadOnlyProperties.asMap()`; the keys in the returned map are not normalized. Use `get()` and `containsProperty()` for all property access instead.
+
+### Added
+
+- Add note to _User Guide_ explaining that `null` properties are excluded when using `@Property`.
+
+### Fixed
+
+- Fix `ReadOnlyProperties.get()` and `containsProperty()` failing to resolve property names that IDDM has normalized before passing them to the connector.
+
 ## 1.1.1 - 2026-01-29
 
 ### Changed
