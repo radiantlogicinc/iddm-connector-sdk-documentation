@@ -129,7 +129,9 @@ public class PennAveConnector implements SearchOperations<LdapSearchRequest, Lda
 The exact object type injected by IDDM depends on the properties requested. ([See the Property Sets section later in this guide](#Property-Sets) or `InjectableProperties` Javadoc for details.) The `@Property` annotation can be applied to only constructor parameters appearing in `@ManagedComponent` and `@CustomConnector` annotated classes. 
 
 > [!IMPORTANT]
-> Property names injected by `CUSTOM_DATASOURCE_PROPERTIES` are normalized differently by IDDM based on the operation being performed. Developers are strongly encouraged to use snake case ("admin_password") or kebab case ("admin-password") for all connector configuration property names.
+> `null` properties are excluded when the property set is a `ReadOnlyProperties` object type. In the previous 
+> example, if the data source has a "password" property but the value is `null`, then 
+> `connectionProperties.containsProperty("password") returns `false`.
 
 ## Dependency Injection With @ManagedComponent
 
