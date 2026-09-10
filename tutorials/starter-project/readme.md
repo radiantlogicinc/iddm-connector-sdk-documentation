@@ -1,6 +1,6 @@
-# IDDM Connector SDK Starter Project
+# Radiant Logic Connector SDK Starter Project
 
-This project provides a template for building a connector using the IDDM Connector SDK.
+This project provides a template for building a connector using the Radiant Logic Connector SDK.
 
 It includes partial implementations of core components and a Maven POM file with commonly used dependencies.
 

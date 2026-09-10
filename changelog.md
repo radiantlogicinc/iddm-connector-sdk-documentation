@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.0.0 - 2026-09-09
+
+### Changed
+- **Breaking:** Connector SDK requires Java 21 or higher (upgraded from Java 8).
+- Upgrade dependencies: Lombok, Mockito
+
 ## 1.2.0 - 2026-04-03
 
 ### Changed
